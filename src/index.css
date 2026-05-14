@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════
+   SMC GOLD ANALYZER — Design System
+   ═══════════════════════════════════════════════ */
+
+@theme {
+  /* ─── Background ─── */
+  --color-bg-deep: #060911;
+  --color-bg-primary: #0A0E17;
+  --color-bg-secondary: #111827;
+  --color-bg-tertiary: #1A2035;
+  --color-bg-card: #151C2E;
+  --color-bg-hover: #1E2742;
+  
+  /* ─── Gold Brand ─── */
+  --color-gold-50: #FFF9E6;
+  --color-gold-100: #FFF0BF;
+  --color-gold-200: #FFE699;
+  --color-gold-300: #FFD966;
+  --color-gold-400: #D4A843;
+  --color-gold-500: #B8922E;
+  --color-gold-600: #9A7A24;
+  
+  /* ─── Directional ─── */
+  --color-bull: #00C897;
+  --color-bull-dim: #00C89733;
+  --color-bull-glow: #00C89755;
+  --color-bear: #FF4757;
+  --color-bear-dim: #FF475733;
+  --color-bear-glow: #FF475755;
+  --color-neutral: #FFA502;
+  --color-neutral-dim: #FFA50233;
+  
+  /* ─── Zone Colors ─── */
+  --color-ob-bull: #00C89722;
+  --color-ob-bear: #FF475722;
+  --color-fvg: #3498DB22;
+  --color-fvg-solid: #3498DB;
+  --color-liquidity: #F1C40F;
+  --color-liquidity-dim: #F1C40F33;
+  
+  /* ─── Text ─── */
+  --color-text-primary: #E8ECF4;
+  --color-text-secondary: #8896B3;
+  --color-text-muted: #4A5878;
+  --color-text-bright: #FFFFFF;
+  
+  /* ─── Borders ─── */
+  --color-border: #1E2A42;
+  --color-border-light: #2A3654;
+  
+  /* ─── Font ─── */
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ─── Base Reset ─── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: linear-gradient(145deg, var(--color-bg-deep) 0%, var(--color-bg-primary) 35%, var(--color-bg-secondary) 100%);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ─── Animations ─── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--glow-color, var(--color-gold-400)); }
+  50% { box-shadow: 0 0 24px var(--glow-color, var(--color-gold-400)); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes price-flash-up {
+  0% { color: var(--color-bull); text-shadow: 0 0 12px var(--color-bull-glow); }
+  100% { color: var(--color-text-bright); text-shadow: none; }
+}
+
+@keyframes price-flash-down {
+  0% { color: var(--color-bear); text-shadow: 0 0 12px var(--color-bear-glow); }
+  100% { color: var(--color-text-bright); text-shadow: none; }
+}
+
+@keyframes beacon {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes count-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes progress {
+  0% { width: 0%; transform: translateX(-100%); }
+  50% { width: 40%; transform: translateX(50%); }
+  100% { width: 100%; transform: translateX(200%); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.35s ease-out both;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ─── Glass Card ─── */
+.glass-card {
+  background: linear-gradient(135deg, rgba(21, 28, 46, 0.8) 0%, rgba(26, 32, 53, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-light);
+}
+
+/* ─── Bias Badge ─── */
+.bias-bullish {
+  background: var(--color-bull-dim);
+  color: var(--color-bull);
+  border: 1px solid var(--color-bull);
+}
+
+.bias-bearish {
+  background: var(--color-bear-dim);
+  color: var(--color-bear);
+  border: 1px solid var(--color-bear);
+}
+
+.bias-neutral {
+  background: var(--color-neutral-dim);
+  color: var(--color-neutral);
+  border: 1px solid var(--color-neutral);
+}
+
+/* ─── Zone Tags ─── */
+.zone-ob-bull {
+  background: var(--color-ob-bull);
+  border-left: 3px solid var(--color-bull);
+}
+
+.zone-ob-bear {
+  background: var(--color-ob-bear);
+  border-left: 3px solid var(--color-bear);
+}
+
+.zone-fvg {
+  background: var(--color-fvg);
+  border-left: 3px solid var(--color-fvg-solid);
+}
+
+.zone-liquidity {
+  background: var(--color-liquidity-dim);
+  border-left: 3px solid var(--color-liquidity);
+}
+
+/* ─── Checklist ─── */
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.check-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.check-item.active {
+  background: var(--color-bull-dim);
+}
+
+.check-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.check-dot.on {
+  background: var(--color-bull);
+  box-shadow: 0 0 8px var(--color-bull-glow);
+}
+
+.check-dot.off {
+  background: var(--color-text-muted);
+}
+
+/* ─── Confluence Ring ─── */
+.confluence-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.confluence-ring svg {
+  transform: rotate(-90deg);
+}
+
+.confluence-ring .score-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+}
+
+/* ─── Toast ─── */
+.toast-enter {
+  animation: slide-in-right 0.3s ease-out both;
+}
+
+.toast-exit {
+  animation: slide-in-right 0.25s ease-in reverse both;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  html { font-size: 13px; }
+}
+
+@media (max-width: 768px) {
+  html { font-size: 12px; }
+}

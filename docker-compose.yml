@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  smc-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass the API key from the .env file to the build process
+        - VITE_TWELVEDATA_API_KEY=${VITE_TWELVEDATA_API_KEY}
+    container_name: smc-analyzer
+    ports:
+      - "8080:80" # Maps port 8080 on your host to port 80 in the container
+    restart: unless-stopped
+    env_file:
+      - .env
