@@ -124,21 +124,23 @@ export default function TradingChart({ timeframe }) {
         seriesRef.current.setData(unique);
 
         // ─── Build Markers Array ───
+        // SMC Top-Down: H4/H1 = POI zones & structure, 15min/5min = execution (Sweep/CHoCH), BOS = all intraday
         const markers = [];
-
-        // 1. Add Sweep Markers
-        const hideSweepsOn = ['1W', '1D'];
         const lastAsianEnd = getLastAsianSessionEnd();
-        const isIntraday = !['1W', '1D'].includes(tf);
 
-        if (!hideSweepsOn.includes(tf)) {
+        // Execution TFs: Sweep & CHoCH only here (post-Asian session)
+        const executionTFs = ['15min', '5min'];
+        // POI TFs: OB/FVG zones & HH/HL/LH/LL structure labels
+        const poiTFs = ['4H', '1H'];
+        // Overview TFs: clean charts, no markers
+        const overviewTFs = ['1W', '1D'];
+
+        // 1. Sweep Markers — only on execution TFs, post-Asian session
+        if (executionTFs.includes(tf)) {
           const tfSweeps = (stopHunts || []).filter(h => h.timeframe === tf && h.levelType && h.time);
           tfSweeps.forEach(sweep => {
             const t = toUnix(sweep.time);
-            
-            // Filter: Only after last Asian session for intraday
-            if (isIntraday && t < lastAsianEnd) return;
-
+            if (t < lastAsianEnd) return; // Only post-Asian session
             if (seen.has(t)) {
               markers.push({
                 time: t,
@@ -152,31 +154,32 @@ export default function TradingChart({ timeframe }) {
           });
         }
 
-        // 2. Add Structure Markers (HH/LL and CHoCH/BOS)
+        // 2. Structure Markers (HH/LL, CHoCH, BOS)
         const tfStructure = structures[tf];
-        if (tfStructure && tfStructure.points) {
-          const hideLabelsOn = ['1H', '15min', '5min'];
-          
+        if (tfStructure && tfStructure.points && !overviewTFs.includes(tf)) {
           tfStructure.points.forEach(p => {
             if (!p.label && !p.marker) return;
             
             const markerText = p.marker ? p.marker : p.label;
             const t = toUnix(p.time);
             
-            // Hide HH/HL/LH/LL on low timeframes as per user request
-            if (hideLabelsOn.includes(tf) && ['HH', 'HL', 'LH', 'LL'].includes(markerText)) {
+            // HH/HL/LH/LL — only on POI TFs (H4, H1) for structure identification
+            if (['HH', 'HL', 'LH', 'LL'].includes(markerText) && !poiTFs.includes(tf)) {
               return;
             }
 
-            // Show CHoCH only on 15min and 5min as per user request
-            if (markerText === 'CHoCH' && !['15min', '5min'].includes(tf)) {
+            // CHoCH — only on execution TFs (15min, 5min) for entry confirmation
+            if (markerText === 'CHoCH' && !executionTFs.includes(tf)) {
               return;
             }
 
-            // Filter: CHoCH only after last Asian session for intraday
-            if (isIntraday && markerText === 'CHoCH' && t < lastAsianEnd) {
+            // CHoCH — only post-Asian session
+            if (markerText === 'CHoCH' && t < lastAsianEnd) {
               return;
             }
+
+            // BOS — shown on all intraday TFs (H4, H1, 15min, 5min)
+            // No additional filter needed for BOS
 
             if (seen.has(t)) {
               let color = p.type === 'high' ? COLORS.bear : COLORS.bull;
@@ -229,9 +232,8 @@ export default function TradingChart({ timeframe }) {
         });
         priceLinesRef.current = [];
 
-        // Hide zones on high timeframes as per user request
-        const hideZonesOn = ['1W', '1D', '4H'];
-        const shouldShowZones = !hideZonesOn.includes(tf);
+        // OB/FVG zones — only on POI TFs (H4, H1) for institutional zone identification
+        const shouldShowZones = poiTFs.includes(tf);
 
         const linesToDraw = [];
         
