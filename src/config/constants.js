@@ -19,6 +19,15 @@ export const TF_ORDER = ['1W', '1D', '4H', '1H', '15min', '5min'];
 // ─── Killzones (CET/Paris Time) ───
 export const KILLZONES = [
   {
+    name: 'Asiatic',
+    emoji: '🇯🇵',
+    startHour: 0,
+    startMinute: 0,
+    endHour: 7,
+    endMinute: 0,
+    timezone: 'Europe/Paris',
+  },
+  {
     name: 'London',
     emoji: '🇬🇧',
     startHour: 8,

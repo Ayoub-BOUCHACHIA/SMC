@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { createChart, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts';
 import { COLORS } from '../../config/constants';
 import useMarketStore from '../../store/useMarketStore';
+import { getLastAsianSessionEnd } from '../../utils/timeUtils';
 
 export default function TradingChart({ timeframe }) {
   const containerRef = useRef(null);
@@ -127,10 +128,17 @@ export default function TradingChart({ timeframe }) {
 
         // 1. Add Sweep Markers
         const hideSweepsOn = ['1W', '1D'];
+        const lastAsianEnd = getLastAsianSessionEnd();
+        const isIntraday = !['1W', '1D'].includes(tf);
+
         if (!hideSweepsOn.includes(tf)) {
           const tfSweeps = (stopHunts || []).filter(h => h.timeframe === tf && h.levelType && h.time);
           tfSweeps.forEach(sweep => {
             const t = toUnix(sweep.time);
+            
+            // Filter: Only after last Asian session for intraday
+            if (isIntraday && t < lastAsianEnd) return;
+
             if (seen.has(t)) {
               markers.push({
                 time: t,
@@ -153,13 +161,23 @@ export default function TradingChart({ timeframe }) {
             if (!p.label && !p.marker) return;
             
             const markerText = p.marker ? p.marker : p.label;
+            const t = toUnix(p.time);
             
             // Hide HH/HL/LH/LL on low timeframes as per user request
             if (hideLabelsOn.includes(tf) && ['HH', 'HL', 'LH', 'LL'].includes(markerText)) {
               return;
             }
 
-            const t = toUnix(p.time);
+            // Show CHoCH only on 15min and 5min as per user request
+            if (markerText === 'CHoCH' && !['15min', '5min'].includes(tf)) {
+              return;
+            }
+
+            // Filter: CHoCH only after last Asian session for intraday
+            if (isIntraday && markerText === 'CHoCH' && t < lastAsianEnd) {
+              return;
+            }
+
             if (seen.has(t)) {
               let color = p.type === 'high' ? COLORS.bear : COLORS.bull;
               if (p.marker === 'CHoCH') color = COLORS.gold;

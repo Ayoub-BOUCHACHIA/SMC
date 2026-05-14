@@ -96,6 +96,28 @@ export function getNextKillzone() {
 }
 
 /**
+ * Get the Unix timestamp (seconds) of the end of the last Asian session
+ */
+export function getLastAsianSessionEnd() {
+  const now = new Date();
+  const parisStr = now.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+  const paris = new Date(parisStr);
+  
+  // Asiatic session ends at 07:00 CET/Paris
+  const asianEndHour = 7;
+  
+  let lastEnd = new Date(paris);
+  lastEnd.setHours(asianEndHour, 0, 0, 0);
+  
+  // If current time is before 07:00, the last session ended yesterday
+  if (paris.getHours() < asianEndHour) {
+    lastEnd.setDate(lastEnd.getDate() - 1);
+  }
+  
+  return Math.floor(lastEnd.getTime() / 1000);
+}
+
+/**
  * Format minutes into hours and minutes string
  */
 export function formatCountdown(totalMinutes) {
