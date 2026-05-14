@@ -4,6 +4,9 @@ import { formatPrice } from '../../utils/formatters';
 import { getActiveKillzone } from '../../utils/timeUtils';
 import { isApiConfigured } from '../../config/api';
 
+const APP_VERSION = 'v2.1.0';
+const BUILD_TIME = '__BUILD_TIME__';
+
 export default function Header() {
   const { currentPrice, previousPrice, lastUpdate, loading } = useMarketStore();
   const [kz, setKz] = useState({ active: false });
@@ -34,7 +37,9 @@ export default function Header() {
           <h1 className="text-base font-bold tracking-wide" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-gold-400)' }}>
             SMC GOLD ANALYZER
           </h1>
-          <p className="text-[10px] text-text-muted tracking-widest uppercase">ICT / Smart Money Concepts</p>
+          <p className="text-[10px] text-text-muted tracking-widest uppercase">
+            ICT / Smart Money Concepts • <span className="text-gold-400/60">{APP_VERSION}</span>
+          </p>
         </div>
       </div>
 

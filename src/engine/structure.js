@@ -38,7 +38,7 @@ export function detectSwingPoints(candles, lookback = DETECTION.SWING_LOOKBACK) 
         type: 'high',
         price: candles[i].high,
         index: i,
-        time: candles[i].time,
+        time: candles[i].datetime || candles[i].time,
       });
     }
     if (isSwingLow) {
@@ -46,7 +46,7 @@ export function detectSwingPoints(candles, lookback = DETECTION.SWING_LOOKBACK) 
         type: 'low',
         price: candles[i].low,
         index: i,
-        time: candles[i].time,
+        time: candles[i].datetime || candles[i].time,
       });
     }
   }
@@ -109,6 +109,29 @@ export function classifyStructure(swings) {
   else if (bearishCount >= 3) trend = 'BEARISH';
   else if (bullishCount > bearishCount) trend = 'BULLISH';
   else if (bearishCount > bullishCount) trend = 'BEARISH';
+
+  // Second pass: Assign CHoCH and BOS markers for the UI
+  let currentTrend = 'NEUTRAL';
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.label === 'HH') {
+      if (currentTrend !== 'BULLISH') {
+        p.marker = 'CHoCH';
+        currentTrend = 'BULLISH';
+      } else {
+        p.marker = 'BOS';
+      }
+    } else if (p.label === 'LL') {
+      if (currentTrend !== 'BEARISH') {
+        p.marker = 'CHoCH';
+        currentTrend = 'BEARISH';
+      } else {
+        p.marker = 'BOS';
+      }
+    } else {
+      p.marker = null; // Hide HL and LH in the new clean UI
+    }
+  }
 
   return {
     points,

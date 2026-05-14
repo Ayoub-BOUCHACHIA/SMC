@@ -16,15 +16,16 @@
  *
  * @param {Array} candles - OHLCV oldest first
  * @param {Array} liquidityLevels - from detectLiquidity
- * @param {number} lookbackCandles - how many recent candles to check
+ * @param {number} lookbackCandles - how many recent candles to check (default: all)
  * @returns {Array} [{ detected, direction, level, candle, time }]
  */
-export function detectStopHunts(candles, liquidityLevels, lookbackCandles = 5) {
+export function detectStopHunts(candles, liquidityLevels, lookbackCandles = null) {
   const hunts = [];
   if (!candles || !liquidityLevels || candles.length < 2) return hunts;
 
-  // Only check most recent candles
-  const startIdx = Math.max(0, candles.length - lookbackCandles);
+  // Check recent candles or all candles
+  const limit = lookbackCandles || candles.length;
+  const startIdx = Math.max(0, candles.length - limit);
 
   for (let i = startIdx; i < candles.length; i++) {
     const candle = candles[i];
@@ -42,7 +43,7 @@ export function detectStopHunts(candles, liquidityLevels, lookbackCandles = 5) {
             level: level.price,
             levelType: 'SSL',
             wickDepth: level.price - candle.low,
-            time: candle.time,
+            time: candle.datetime || candle.time,
             index: i,
           });
         }
@@ -58,7 +59,7 @@ export function detectStopHunts(candles, liquidityLevels, lookbackCandles = 5) {
             level: level.price,
             levelType: 'BSL',
             wickDepth: candle.high - level.price,
-            time: candle.time,
+            time: candle.datetime || candle.time,
             index: i,
           });
         }

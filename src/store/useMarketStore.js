@@ -77,7 +77,8 @@ const useMarketStore = create((set, get) => ({
     const orderBlocks = [];
     const fvg = [];
     const liquidity = [];
-    for (const tf of ['1D', '4H', '15min', '5min']) {
+    const allTimeframes = ['1W', '1D', '4H', '1H', '15min', '5min'];
+    for (const tf of allTimeframes) {
       if (ohlcv[tf]) {
         orderBlocks.push(...detectOrderBlocks(ohlcv[tf], tf));
         fvg.push(...detectFVG(ohlcv[tf], tf));
@@ -88,7 +89,7 @@ const useMarketStore = create((set, get) => ({
     // 3. Structure & MSS
     const mss = {};
     const structures = {};
-    for (const tf of ['1W', '1D', '4H', '1H', '15min', '5min']) {
+    for (const tf of allTimeframes) {
       if (ohlcv[tf]) {
         structures[tf] = analyzeStructure(ohlcv[tf]);
         if (['15min', '5min'].includes(tf)) {
@@ -97,12 +98,14 @@ const useMarketStore = create((set, get) => ({
       }
     }
 
-    // 4. Stop Hunts
+    // 4. Stop Hunts (Sweeps)
     let stopHunts = [];
-    for (const tf of ['15min', '5min']) {
+    for (const tf of allTimeframes) {
       if (ohlcv[tf]) {
         const tfLiq = liquidity.filter(l => l.timeframe === tf);
-        stopHunts.push(...detectStopHunts(ohlcv[tf], tfLiq, 5));
+        // Pass null to detect all historical sweeps instead of last 5
+        const hunts = detectStopHunts(ohlcv[tf], tfLiq, null);
+        stopHunts.push(...hunts.map(h => ({ ...h, timeframe: tf })));
       }
     }
 

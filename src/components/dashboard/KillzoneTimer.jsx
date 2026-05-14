@@ -16,34 +16,50 @@ export default function KillzoneTimer() {
   }, []);
 
   return (
-    <div className={`glass-card p-4 animate-fade-in ${kz.active ? 'border-gold-400/30' : ''}`}>
-      <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3" style={{ fontFamily: 'var(--font-heading)' }}>
-        Killzones
-      </h2>
+    <div className={`glass-card p-4 animate-fade-in h-full relative overflow-hidden ${kz.active ? 'border-gold-400/30' : ''}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm">🕒</span>
+        <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+          Market Sessions
+        </h2>
+      </div>
 
       {kz.active ? (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gold-400/15 flex items-center justify-center animate-pulse-glow" style={{ '--glow-color': 'var(--color-gold-400)' }}>
-            <span className="text-lg">{kz.emoji}</span>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gold-400/10 flex items-center justify-center relative">
+            <span className="absolute inset-0 rounded-xl border border-gold-400/20 animate-pulse-glow" style={{ '--glow-color': 'var(--color-gold-400)' }} />
+            <span className="text-2xl z-10">{kz.emoji}</span>
           </div>
-          <div>
-            <p className="text-sm font-bold text-gold-400" style={{ fontFamily: 'var(--font-heading)' }}>
-              {kz.name} Active
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gold-400 uppercase tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+              {kz.name}
             </p>
-            <p className="text-[10px] text-text-muted">
-              {kz.remainingMinutes}min remaining
-            </p>
+            <div className="mt-1.5 space-y-1">
+              <div className="h-1 bg-bg-tertiary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gold-400 animate-pulse" 
+                  style={{ width: `${Math.max(10, (kz.remainingMinutes / 120) * 100)}%` }} 
+                />
+              </div>
+              <div className="flex justify-between items-center text-[9px] text-text-muted font-mono uppercase">
+                <span>Active Now</span>
+                <span>{kz.remainingMinutes}M Left</span>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center">
-            <span className="text-lg opacity-40">⏰</span>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-bg-tertiary flex items-center justify-center">
+            <span className="text-2xl opacity-30">⏸</span>
           </div>
-          <div>
-            <p className="text-xs text-text-muted">Next session</p>
-            <p className="text-sm font-semibold text-text-primary" style={{ fontFamily: 'var(--font-heading)' }}>
-              {next.emoji} {next.name} in {formatCountdown(next.minutesUntil)}
+          <div className="flex-1">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest font-semibold mb-0.5">Next Opportunity</p>
+            <p className="text-sm font-bold text-text-primary uppercase" style={{ fontFamily: 'var(--font-heading)' }}>
+              {next.emoji} {next.name}
+            </p>
+            <p className="text-[10px] text-gold-400/70 font-mono mt-1">
+              IN {formatCountdown(next.minutesUntil)}
             </p>
           </div>
         </div>

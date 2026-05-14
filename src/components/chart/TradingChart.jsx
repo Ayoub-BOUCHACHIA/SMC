@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { createChart, CandlestickSeries } from 'lightweight-charts';
+import { createChart, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts';
 import { COLORS } from '../../config/constants';
 import useMarketStore from '../../store/useMarketStore';
 
@@ -8,10 +8,21 @@ export default function TradingChart({ timeframe }) {
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const priceLinesRef = useRef([]);
+  const markersRef = useRef(null);
 
-  const { ohlcv, chartTF, zones, structures } = useMarketStore();
+  const { ohlcv, chartTF, zones, structures, stopHunts } = useMarketStore();
   const tf = timeframe || chartTF;
   const candles = ohlcv[tf] || [];
+
+  // Helper: convert any time value to unix seconds
+  const toUnix = (t) => {
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') {
+      const d = new Date(t.replace(' ', 'T') + (t.includes('Z') ? '' : 'Z'));
+      return Math.floor(d.getTime() / 1000);
+    }
+    return NaN;
+  };
 
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -95,12 +106,8 @@ export default function TradingChart({ timeframe }) {
     try {
       const chartData = candles
         .map((c) => {
-          let t = c.time;
-          if (typeof t === 'string') {
-            const d = new Date(t.replace(' ', 'T') + (t.includes('Z') ? '' : 'Z'));
-            t = Math.floor(d.getTime() / 1000);
-          }
-          return { time: t, open: c.open, high: c.high, low: c.low, close: c.close };
+          const t = toUnix(c.datetime || c.time);
+          return { time: t, open: +c.open, high: +c.high, low: +c.low, close: +c.close };
         })
         .filter((d) => !isNaN(d.time))
         .sort((a, b) => a.time - b.time);
@@ -115,83 +122,151 @@ export default function TradingChart({ timeframe }) {
       if (unique.length > 0) {
         seriesRef.current.setData(unique);
 
-        // ─── Draw Structure Markers ───
-        const tfStructure = structures[tf];
-        if (tfStructure && tfStructure.points) {
-          const markers = [];
-          tfStructure.points.forEach(p => {
-            let t = p.time;
-            if (typeof t === 'string') {
-              const d = new Date(t.replace(' ', 'T') + (t.includes('Z') ? '' : 'Z'));
-              t = Math.floor(d.getTime() / 1000);
-            }
+        // ─── Build Markers Array ───
+        const markers = [];
+
+        // 1. Add Sweep Markers
+        const hideSweepsOn = ['1W', '1D'];
+        if (!hideSweepsOn.includes(tf)) {
+          const tfSweeps = (stopHunts || []).filter(h => h.timeframe === tf && h.levelType && h.time);
+          tfSweeps.forEach(sweep => {
+            const t = toUnix(sweep.time);
             if (seen.has(t)) {
               markers.push({
                 time: t,
-                position: p.type === 'high' ? 'aboveBar' : 'belowBar',
-                color: p.type === 'high' ? COLORS.bear : COLORS.bull,
-                shape: p.type === 'high' ? 'arrowDown' : 'arrowUp',
-                text: p.label,
+                position: sweep.direction === 'BULLISH' ? 'belowBar' : 'aboveBar',
+                color: COLORS.gold,
+                shape: sweep.direction === 'BULLISH' ? 'arrowUp' : 'arrowDown',
+                text: '💧 Sweep',
                 size: 1,
               });
             }
           });
-          markers.sort((a, b) => a.time - b.time);
-          seriesRef.current.setMarkers(markers);
         }
 
-        // ─── Draw Zones (OB / FVG) ───
-        priceLinesRef.current.forEach(pl => seriesRef.current.removePriceLine(pl));
+        // 2. Add Structure Markers (HH/LL and CHoCH/BOS)
+        const tfStructure = structures[tf];
+        if (tfStructure && tfStructure.points) {
+          const hideLabelsOn = ['1H', '15min', '5min'];
+          
+          tfStructure.points.forEach(p => {
+            if (!p.label && !p.marker) return;
+            
+            const markerText = p.marker ? p.marker : p.label;
+            
+            // Hide HH/HL/LH/LL on low timeframes as per user request
+            if (hideLabelsOn.includes(tf) && ['HH', 'HL', 'LH', 'LL'].includes(markerText)) {
+              return;
+            }
+
+            const t = toUnix(p.time);
+            if (seen.has(t)) {
+              let color = p.type === 'high' ? COLORS.bear : COLORS.bull;
+              if (p.marker === 'CHoCH') color = COLORS.gold;
+              if (p.marker === 'BOS') color = '#9B59B6';
+
+              markers.push({
+                time: t,
+                position: p.type === 'high' ? 'aboveBar' : 'belowBar',
+                color,
+                shape: p.type === 'high' ? 'arrowDown' : 'arrowUp',
+                text: markerText,
+                size: 1,
+              });
+            }
+          });
+        }
+        
+        markers.sort((a, b) => a.time - b.time);
+        
+        // Deduplicate markers by time (lightweight-charts crashes on duplicates)
+        const uniqueMarkers = [];
+        const markerTimes = new Set();
+        markers.forEach(m => {
+          if (!markerTimes.has(m.time)) {
+            markerTimes.add(m.time);
+            uniqueMarkers.push(m);
+          } else {
+            const existing = uniqueMarkers.find(um => um.time === m.time);
+            if (existing && existing.text !== m.text) {
+               existing.text += ' / ' + m.text;
+            }
+          }
+        });
+
+        // ─── Use v5 API: createSeriesMarkers ───
+        // Remove old markers primitive if it exists
+        if (markersRef.current) {
+          try { markersRef.current.detach(); } catch (_) { /* ignore */ }
+          markersRef.current = null;
+        }
+
+        if (uniqueMarkers.length > 0) {
+          markersRef.current = createSeriesMarkers(seriesRef.current, uniqueMarkers);
+        }
+
+        // ─── Draw Zones (OB / FVG) as price lines ───
+        priceLinesRef.current.forEach(pl => {
+          try { seriesRef.current.removePriceLine(pl); } catch (_) { /* ignore */ }
+        });
         priceLinesRef.current = [];
+
+        // Hide zones on high timeframes as per user request
+        const hideZonesOn = ['1W', '1D', '4H'];
+        const shouldShowZones = !hideZonesOn.includes(tf);
 
         const linesToDraw = [];
         
-        // Active Order Blocks
-        const tfOBs = (zones?.orderBlocks || []).filter(z => z.timeframe === tf);
-        tfOBs.forEach(ob => {
-          linesToDraw.push({
-            price: ob.top,
-            color: ob.type === 'bullish' ? COLORS.bull : COLORS.bear,
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: `OB`,
+        if (shouldShowZones) {
+          // Active Order Blocks (use .high / .low from engine)
+          const tfOBs = (zones?.orderBlocks || []).filter(z => z.timeframe === tf);
+          tfOBs.forEach(ob => {
+            linesToDraw.push({
+              price: ob.high,
+              color: ob.type === 'bullish' ? COLORS.bull : COLORS.bear,
+              lineWidth: 1,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `OB ${ob.type === 'bullish' ? '▲' : '▼'}`,
+            });
+            linesToDraw.push({
+              price: ob.low,
+              color: ob.type === 'bullish' ? COLORS.bull : COLORS.bear,
+              lineWidth: 1,
+              lineStyle: 2,
+              axisLabelVisible: false,
+            });
           });
-          linesToDraw.push({
-            price: ob.bottom,
-            color: ob.type === 'bullish' ? COLORS.bull : COLORS.bear,
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: false,
-          });
-        });
 
-        // Active FVGs
-        const tfFVGs = (zones?.fvg || []).filter(z => z.timeframe === tf);
-        tfFVGs.forEach(f => {
-          linesToDraw.push({
-            price: f.top,
-            color: COLORS.fvg,
-            lineWidth: 1,
-            lineStyle: 3,
-            axisLabelVisible: true,
-            title: `FVG`,
+          // Active FVGs (use .top / .bottom from engine)
+          const tfFVGs = (zones?.fvg || []).filter(z => z.timeframe === tf);
+          tfFVGs.forEach(f => {
+            linesToDraw.push({
+              price: f.top,
+              color: COLORS.fvg,
+              lineWidth: 1,
+              lineStyle: 3,
+              axisLabelVisible: true,
+              title: `FVG ${f.type === 'bullish' ? '▲' : '▼'}`,
+            });
+            linesToDraw.push({
+              price: f.bottom,
+              color: COLORS.fvg,
+              lineWidth: 1,
+              lineStyle: 3,
+              axisLabelVisible: false,
+            });
           });
-          linesToDraw.push({
-            price: f.bottom,
-            color: COLORS.fvg,
-            lineWidth: 1,
-            lineStyle: 3,
-            axisLabelVisible: false,
-          });
-        });
+        }
 
         linesToDraw.forEach(opts => {
-          const pl = seriesRef.current.createPriceLine(opts);
-          priceLinesRef.current.push(pl);
+          try {
+            const pl = seriesRef.current.createPriceLine(opts);
+            priceLinesRef.current.push(pl);
+          } catch (_) { /* ignore invalid prices */ }
         });
 
-        // Only fit content on initial data load, not on every tick to preserve zoom level
+        // Fit content on initial load
         if (unique.length === candles.length) {
           chartRef.current?.timeScale().fitContent();
         }
@@ -199,7 +274,7 @@ export default function TradingChart({ timeframe }) {
     } catch (err) {
       console.warn('Chart data update error:', err);
     }
-  }, [candles, tf, zones, structures]);
+  }, [candles, tf, zones, structures, stopHunts]);
 
   return (
     <div

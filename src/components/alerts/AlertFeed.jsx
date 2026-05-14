@@ -6,35 +6,57 @@ export default function AlertFeed() {
   const { alerts, clearAlerts } = useMarketStore();
 
   return (
-    <div className="glass-card p-4 animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
-          Alerts
-        </h2>
+    <div className="glass-card flex flex-col h-full overflow-hidden animate-fade-in">
+      <div className="p-4 border-b border-border flex items-center justify-between bg-bg-primary/30">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🔔</span>
+          <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
+            System Events
+          </h2>
+        </div>
         {alerts.length > 0 && (
-          <button onClick={clearAlerts} className="text-[10px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
-            Clear
+          <button 
+            onClick={clearAlerts} 
+            className="text-[9px] font-bold text-text-muted hover:text-bear transition-all px-2 py-0.5 rounded border border-border hover:border-bear/30 uppercase tracking-tighter"
+          >
+            Flush
           </button>
         )}
       </div>
 
-      <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto space-y-0.5 p-2 bg-bg-deep/20">
         {alerts.length === 0 && (
-          <p className="text-xs text-text-muted py-3 text-center">No alerts yet</p>
+          <div className="flex flex-col items-center justify-center py-10 opacity-30">
+            <span className="text-2xl mb-2">📡</span>
+            <p className="text-[10px] uppercase tracking-widest font-bold">Awaiting Market Signals</p>
+          </div>
         )}
-        {alerts.slice(0, 15).map(alert => {
+        {alerts.slice(0, 20).map(alert => {
           const config = ALERT_TYPES[alert.type] || ALERT_TYPES.info;
           return (
-            <div key={alert.id} className="flex items-start gap-2 px-2 py-2 rounded-lg hover:bg-bg-hover transition-colors animate-slide-in">
-              <span className="text-sm flex-shrink-0">{config.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-text-primary truncate">{alert.title}</p>
-                <p className="text-[10px] text-text-muted truncate">{alert.message}</p>
+            <div 
+              key={alert.id} 
+              className="flex items-start gap-3 p-3 rounded-lg hover:bg-bg-hover/30 transition-all group border border-transparent hover:border-border/40 animate-slide-in"
+            >
+              <div className="flex flex-col items-center gap-1 mt-1">
+                 <span className="text-base group-hover:scale-110 transition-transform">{config.icon}</span>
+                 <div className="w-[1px] h-full bg-border group-last:hidden" />
               </div>
-              <span className="text-[9px] text-text-muted flex-shrink-0">{timeAgo(alert.timestamp)}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-text-primary tracking-tight">{alert.title}</p>
+                  <span className="text-[9px] font-mono text-text-muted whitespace-nowrap">{timeAgo(alert.timestamp)}</span>
+                </div>
+                <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5 line-clamp-2">{alert.message}</p>
+              </div>
             </div>
           );
         })}
+      </div>
+
+      <div className="p-2 border-t border-border text-[9px] text-text-muted flex justify-center items-center gap-2 bg-bg-primary/40 font-mono">
+        <span className="w-1.5 h-1.5 rounded-full bg-bull/50 animate-pulse" />
+        REAL-TIME FEED ACTIVE
       </div>
     </div>
   );
