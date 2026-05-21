@@ -1,7 +1,7 @@
 import { getActiveKillzone } from '../utils/timeUtils';
 import { CHECKLIST_ITEMS } from '../config/constants';
 
-export function calculateConfluence({ biases, zones, mss, killzone, currentPrice }) {
+export function calculateConfluence({ biases, zones, mss, killzone, currentPrice, stopHunts, ohlcv }) {
   const items = CHECKLIST_ITEMS.map(item => {
     let met = false;
     switch (item.id) {
@@ -14,7 +14,19 @@ export function calculateConfluence({ biases, zones, mss, killzone, currentPrice
         break;
       }
       case 'killzone': { const kz = killzone || getActiveKillzone(); met = kz.active; break; }
-      case 'liquidity': met = (zones?.liquidity || []).some(l => l.swept); break;
+      case 'liquidity': {
+        if (stopHunts && ohlcv) {
+          const executionHunts = stopHunts.filter(h => ['15min', '5min'].includes(h.timeframe));
+          met = executionHunts.some(h => {
+            const tfCandles = ohlcv[h.timeframe];
+            if (!tfCandles) return false;
+            return (tfCandles.length - 1 - h.index) < 15;
+          });
+        } else {
+          met = (zones?.liquidity || []).some(l => l.swept);
+        }
+        break;
+      }
       case 'mss_15m': met = mss?.['15min']?.detected === true; break;
       case 'ob_fvg_5m': {
         const obs5 = (zones?.orderBlocks || []).filter(z => z.timeframe === '5min');

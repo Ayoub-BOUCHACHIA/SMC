@@ -23,48 +23,62 @@ export function detectStopHunts(candles, liquidityLevels, lookbackCandles = null
   const hunts = [];
   if (!candles || !liquidityLevels || candles.length < 2) return hunts;
 
-  // Check recent candles or all candles
-  const limit = lookbackCandles || candles.length;
-  const startIdx = Math.max(0, candles.length - limit);
+  // For each level, find the FIRST candle *after* the level's formation index that sweeps it.
+  for (const level of liquidityLevels) {
+    const startIdx = level.index + 1;
+    if (startIdx >= candles.length) continue;
 
-  for (let i = startIdx; i < candles.length; i++) {
-    const candle = candles[i];
-    const bodyHigh = Math.max(candle.open, candle.close);
-    const bodyLow = Math.min(candle.open, candle.close);
+    for (let i = startIdx; i < candles.length; i++) {
+      const candle = candles[i];
+      const bodyHigh = Math.max(candle.open, candle.close);
+      const bodyLow = Math.min(candle.open, candle.close);
 
-    for (const level of liquidityLevels) {
-      // ─── Bullish Stop Hunt (sweep SSL) ───
+      let isSwept = false;
+      let isStopHunt = false;
+
       if (level.type === 'SSL') {
-        // Wick went below the level but body closed above
-        if (candle.low < level.price && bodyLow > level.price) {
-          hunts.push({
-            detected: true,
-            direction: 'BULLISH',
-            level: level.price,
-            levelType: 'SSL',
-            wickDepth: level.price - candle.low,
-            time: candle.datetime || candle.time,
-            index: i,
-          });
+        if (candle.low < level.price) {
+          isSwept = true;
+          if (bodyLow > level.price) {
+            isStopHunt = true;
+          }
+        }
+      } else if (level.type === 'BSL') {
+        if (candle.high > level.price) {
+          isSwept = true;
+          if (bodyHigh < level.price) {
+            isStopHunt = true;
+          }
         }
       }
 
-      // ─── Bearish Stop Hunt (sweep BSL) ───
-      if (level.type === 'BSL') {
-        // Wick went above the level but body closed below
-        if (candle.high > level.price && bodyHigh < level.price) {
+      if (isSwept) {
+        level.swept = true;
+        level.sweptAtCandleIndex = i;
+
+        if (isStopHunt) {
           hunts.push({
             detected: true,
-            direction: 'BEARISH',
+            direction: level.type === 'SSL' ? 'BULLISH' : 'BEARISH',
             level: level.price,
-            levelType: 'BSL',
-            wickDepth: candle.high - level.price,
+            levelType: level.type,
+            wickDepth: level.type === 'SSL' ? level.price - candle.low : candle.high - level.price,
             time: candle.datetime || candle.time,
             index: i,
           });
         }
+        break;
       }
     }
+  }
+
+  // Sort hunts by index ascending
+  hunts.sort((a, b) => a.index - b.index);
+
+  // If lookbackCandles is specified, filter for hunts occurring in the last N candles
+  if (lookbackCandles) {
+    const minIndex = candles.length - lookbackCandles;
+    return hunts.filter(h => h.index >= minIndex);
   }
 
   return hunts;

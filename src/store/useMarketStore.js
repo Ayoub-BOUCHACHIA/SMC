@@ -114,7 +114,7 @@ const useMarketStore = create((set, get) => ({
 
     // 6. Confluence
     const zones = { orderBlocks, fvg, liquidity };
-    const confluence = calculateConfluence({ biases, zones, mss, killzone, currentPrice });
+    const confluence = calculateConfluence({ biases, zones, mss, killzone, currentPrice, stopHunts, ohlcv });
 
     // 7. Setup detection
     const setupDetected = confluence.score >= 5;

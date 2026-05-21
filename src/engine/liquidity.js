@@ -79,6 +79,7 @@ export function detectLiquidity(
 
   // Check if levels have been swept (price went beyond)
   for (const lvl of levels) {
+    lvl.swept = false;
     for (let k = lvl.index + 1; k < candles.length; k++) {
       if (lvl.type === 'BSL' && candles[k].high > lvl.price) {
         lvl.swept = true;
@@ -101,6 +102,6 @@ export function detectLiquidity(
     if (!exists) unique.push(lvl);
   }
 
-  // Return un-swept levels, recent ones
-  return unique.filter((l) => !l.swept).slice(-15);
+  // Return the most recent levels (both swept and active) sorted by index
+  return unique.sort((a, b) => a.index - b.index).slice(-30);
 }
